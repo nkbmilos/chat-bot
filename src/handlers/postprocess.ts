@@ -28,7 +28,7 @@ const postprocessHandler = async (event: S3CreateEvent): Promise<APIGatewayProxy
         map[obj.question] = obj.response;
         return map;
     }, {});
-
+    let promises: any[] = [];
     for (let i = 1; i < lines.length; i++) {
         for (let i = 1; i < lines.length; i++) {
             const fields = lines[i].split(';');
@@ -36,9 +36,11 @@ const postprocessHandler = async (event: S3CreateEvent): Promise<APIGatewayProxy
             const receiver = fields[1];
             const message = fields[2];
             const channel = fields[3];
-            await createConversation(message, createAnswer(message, resMap, channel, sender, receiver));
+            let tmpPromise = createConversation(message, createAnswer(message, resMap, channel, sender, receiver));
+            promises.push(tmpPromise);
         }
     }
+    await Promise.all(promises);
     return {statusCode: 200, body: 'ok'};
 };
 export const handler = postprocessHandler;
