@@ -1,0 +1,14 @@
+[
+  {
+    "question": "HAY-instagram",
+    "response": "Hey {{sender_username}}, i am doing great! this is {{reciever_username}}."
+  },
+  {
+    "question": "HAY-email",
+    "response": " Hey {{sender_username}}, its has been a long time we haven't met."
+  },
+  {
+    "question": "HAY-facebook",
+    "response": "Hey {{sender_username}}, this is {{reciever_username}}. How are you doing these days?"
+  }
+]

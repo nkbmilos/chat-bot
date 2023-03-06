@@ -1,0 +1,110 @@
+service: nodejsServerlessChatBot
+frameworkVersion: '3'
+
+plugins:
+  - serverless-localstack
+  - serverless-plugin-common-excludes
+  - serverless-offline
+  - serverless-prune-plugin
+  - serverless-dynamodb-local
+  - serverless-s3-local
+package:
+  artifact: ${opt:artifact, ""}
+
+custom:
+  bucket: csv-bucket
+  localstack:
+    stages:
+      - dev
+    host: https://0.0.0.0
+    edgePort: 4566
+    autostart: false
+  prune:
+    automatic: true
+    number: 3
+  s3:
+    host: localhost
+    directory: /tmp
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8009
+      seed: true
+      migrate: true
+    seed:
+      domain:
+        sources:
+          - table: ChatBotResponces
+            sources: [ ./localDevelopment/seedData/responces.json ]
+provider:
+  name: aws
+  region: us-east-1
+  runtime: nodejs16.x
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource: "*"
+
+functions:
+  csvUpload:
+    handler: dist/handlers/csv.handler
+    name: chat-bot-csv-handler
+    events:
+      - http:
+          path: conversations/csv
+          method: post
+  getConversations:
+    handler: dist/handlers/getAll.handler
+    name: chat-bot-get-conversations
+    events:
+      - http:
+          path: conversations
+          method: get
+  getConversation:
+    handler: dist/handlers/getConversation.handler
+    name: chat-bot-get-conversation
+    events:
+      - http:
+          path: conversations/{id}
+          method: get
+  postprocess:
+    handler: dist/handlers/postprocess.handler
+    name: csv-postprocess
+    events:
+      - s3:
+          bucket: csv-bucket
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .csv
+resources:
+  Resources:
+    NewResource:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: csv-bucket
+    ChatBotResponces:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: question
+            AttributeType: S
+        KeySchema:
+          - AttributeName: question
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ChatBotResponces
+    Conversations:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: Conversations
